@@ -7,154 +7,285 @@ function App() {
 
   const [menus, setMenus] = useState([]);
   const [cart, setCart] = useState([]);
-  // Ambil data menu dari Backend (port 5001)
+  const [loading, setLoading] = useState(true);
+  const [kategoriAktif, setKategoriAktif] = useState('Semua');
+
+  // Ambil data menu dari Backend
   useEffect(() => {
     fetch('https://pempek-backend.vercel.app/api/menu')
       .then((res) => res.json())
-      .then((data) => setMenus(data))
-      .catch((err) => console.error("Aduh, gagal ngambil data:", err));
+      .then((data) => {
+        setMenus(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Gagal ngambil data:", err);
+        setLoading(false);
+      });
   }, []);
+
+  // Helper untuk menambahkan Emoji berdasarkan nama/kategori
+  const getMenuEmoji = (nama, kategori) => {
+    const nameLower = nama.toLowerCase();
+    if (nameLower.includes('kapal selam')) return '🥚';
+    if (nameLower.includes('tekwan') || nameLower.includes('model')) return '🍜';
+    if (nameLower.includes('es') || nameLower.includes('teh') || kategori === 'Minuman') return '🍹';
+    return '🐟';
+  };
 
   const tambahKeKeranjang = (menu) => {
     const itemAda = cart.find((item) => item.id === menu.id);
-
-    if(itemAda) {
-      setCart(
-        cart.map((item) => item.id === menu.id ? { ...item, jumlah: item.jumlah + 1} : item)
-      );
+    if (itemAda) {
+      setCart(cart.map((item) => item.id === menu.id ? { ...item, jumlah: item.jumlah + 1 } : item));
     } else {
-      setCart([...cart, { ...menu, jumlah : 1}]);
+      setCart([...cart, { ...menu, jumlah: 1 }]);
     }
   };
 
   const kurangDariKeranjang = (menuId) => {
     const itemAda = cart.find((item) => item.id === menuId);
-    if(itemAda.jumlah === 1) {
+    if (itemAda.jumlah === 1) {
       setCart(cart.filter((item) => item.id !== menuId));
     } else {
-      setCart(cart.map((item) => item.id === menuId ? { ...item, jumlah: item.jumlah - 1 } : item)
-      )
+      setCart(cart.map((item) => item.id === menuId ? { ...item, jumlah: item.jumlah - 1 } : item));
     }
   };
 
   const kirimPesanan = () => {
-    // Untuk simulasi, kita tentukan dulu ini pesanan dari Meja 3
-
     fetch('https://pempek-backend.vercel.app/api/pesanan', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json', // Memberitahu server kalau kita ngirim data format JSON
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         nomor_meja: nomorMejaAktif,
-        items: cart, // Kirim seluruh array keranjang ([{id: 2, jumlah: 5}, ...])
+        items: cart,
       }),
     })
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
-          alert(`🎉 Pesanan Berhasil Masuk ke Dapur! (ID Transaksi: #${data.pesananId})`);
-          setCart([]); // Kosongkan kembali keranjang belanjaan
+          alert(`🎉 Pesanan Berhasil Ditransmisikan ke Dapur! (ID: #${data.pesananId})`);
+          setCart([]);
         }
       })
       .catch((err) => console.error("Gagal kirim pesanan:", err));
   };
 
   const totalHarga = cart.reduce((total, item) => total + item.harga * item.jumlah, 0);
-  // Fungsi untuk mengubah angka jadi format Rp (contoh: 17500 -> Rp 17.500,00)
+  const totalItemCount = cart.reduce((sum, item) => sum + item.jumlah, 0);
+
   const formatRupiah = (angka) => {
-    return new Intl.NumberFormat('id-ID', { 
-      style: 'currency', 
-      currency: 'IDR' 
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      maximumFractionDigits: 0
     }).format(angka);
   };
 
+  // Filter daftar menu
+  const menuFiltered = kategoriAktif === 'Semua' 
+    ? menus 
+    : menus.filter(m => m.kategori.toLowerCase() === kategoriAktif.toLowerCase());
+
   return (
-    <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto', fontFamily: 'sans-serif', paddingBottom: '120px' }}>
-      <h1 style={{ textAlign: 'center', color: '#d35400' }}>KING PEMPEK</h1>
-      <p style={{ textAlign: 'center', color: '#666', marginBottom: '30px', fontWeight: 'bold' }}>
-        Silakan pilih menu pesanan Anda (Nomor Meja: {nomorMejaAktif})
-      </p>
-      
-      {/* DAFTAR MENU */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        {menus.map((menu) => {
-          // Cek berapa jumlah item ini yang ada di keranjang saat ini
-          const itemDiCart = cart.find((item) => item.id === menu.id);
-          const jumlah = itemDiCart ? itemDiCart.jumlah : 0;
-
-          return (
-            <div 
-              key={menu.id} 
-              style={{ 
-                border: '1px solid #ddd', 
-                padding: '15px', 
-                borderRadius: '10px', 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-              }}
-            >
-              <div>
-                <h3 style={{ margin: '0 0 5px 0' }}>{menu.nama}</h3>
-                <span style={{ 
-                  backgroundColor: menu.kategori === 'Makanan' ? '#ffeaa7' : '#81ecec', 
-                  padding: '3px 8px', 
-                  borderRadius: '5px', 
-                  fontSize: '12px',
-                  color: '#333'
-                }}>
-                  {menu.kategori}
-                </span>
-                <div style={{ fontWeight: 'bold', color: '#d35400', marginTop: '5px' }}>
-                  {formatRupiah(menu.harga)}
-                </div>
-              </div>
-
-              {/* TOMBOL AKSI (+ / -) */}
-              <div>
-                {jumlah === 0 ? (
-                  // Kalau belum dipilih, tampilkan tombol "+ Tambah"
-                  <button 
-                    onClick={() => tambahKeKeranjang(menu)}
-                    style={{
-                      backgroundColor: '#e67e22',
-                      color: 'white',
-                      border: 'none',
-                      padding: '8px 15px',
-                      borderRadius: '5px',
-                      cursor: 'pointer',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    + Tambah
-                  </button>
-                ) : (
-                  // Kalau sudah dipilih, tampilkan kontrol [-] [jumlah] [+]
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <button 
-                      onClick={() => kurangDariKeranjang(menu.id)}
-                      style={{ backgroundColor: '#e74c3c', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}
-                    >
-                      -
-                    </button>
-                    <span style={{ fontWeight: 'bold' }}>{jumlah}</span>
-                    <button 
-                      onClick={() => tambahKeKeranjang(menu)}
-                      style={{ backgroundColor: '#2ecc71', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}
-                    >
-                      +
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#F8F9FA',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      paddingBottom: '130px'
+    }}>
+      {/* 👑 HEADER BANNER */}
+      <div style={{
+        background: 'linear-gradient(135deg, #FF6B35 0%, #D84315 100%)',
+        color: 'white',
+        padding: '30px 20px 25px 20px',
+        borderBottomLeftRadius: '24px',
+        borderBottomRightRadius: '24px',
+        boxShadow: '0 8px 20px rgba(216, 67, 21, 0.25)',
+        textAlign: 'center',
+        position: 'relative'
+      }}>
+        <div style={{ fontSize: '13px', letterSpacing: '2px', fontWeight: 'bold', opacity: 0.9, textTransform: 'uppercase' }}>
+          Welcome To
+        </div>
+        <h1 style={{ margin: '5px 0', fontSize: '28px', fontWeight: '800', letterSpacing: '0.5px' }}>
+          👑 KING PEMPEK 🐟
+        </h1>
+        
+        {/* Badge Nomor Meja */}
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          backgroundColor: 'rgba(255, 255, 255, 0.2)',
+          backdropFilter: 'blur(5px)',
+          padding: '6px 16px',
+          borderRadius: '20px',
+          marginTop: '8px',
+          fontSize: '13px',
+          fontWeight: '600'
+        }}>
+          <span style={{ height: '8px', width: '8px', backgroundColor: '#00E676', borderRadius: '50%', display: 'inline-block' }}></span>
+          Meja Nomor #{nomorMejaAktif}
+        </div>
       </div>
 
-      {/* 💡 KONSEP 5: KERANJANG MELAYANG DI BAWAH (Hanya muncul jika ada isi keranjang) */}
+      <div style={{ maxWidth: '500px', margin: '0 auto', padding: '0 16px' }}>
+        
+        {/* 🗂️ FILTER KATEGORI */}
+        <div style={{
+          display: 'flex',
+          gap: '10px',
+          margin: '20px 0',
+          justifyContent: 'center'
+        }}>
+          {['Semua', 'Makanan', 'Minuman'].map((kat) => (
+            <button
+              key={kat}
+              onClick={() => setKategoriAktif(kat)}
+              style={{
+                padding: '8px 18px',
+                borderRadius: '20px',
+                border: 'none',
+                fontWeight: '600',
+                fontSize: '13px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                backgroundColor: kategoriAktif === kat ? '#FF6B35' : '#E0E0E0',
+                color: kategoriAktif === kat ? 'white' : '#555',
+                boxShadow: kategoriAktif === kat ? '0 4px 10px rgba(255,107,53,0.3)' : 'none'
+              }}
+            >
+              {kat}
+            </button>
+          ))}
+        </div>
+
+        {/* ⏳ LOADING STATE */}
+        {loading && (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#888' }}>
+            <div style={{ fontSize: '30px', marginBottom: '10px' }}>⏳</div>
+            <div>Menyiapkan Menu Lezat...</div>
+          </div>
+        )}
+
+        {/* 📜 DAFTAR MENU CARDS */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {!loading && menuFiltered.map((menu) => {
+            const itemDiCart = cart.find((item) => item.id === menu.id);
+            const jumlah = itemDiCart ? itemDiCart.jumlah : 0;
+
+            return (
+              <div
+                key={menu.id}
+                style={{
+                  backgroundColor: 'white',
+                  borderRadius: '16px',
+                  padding: '16px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.04)',
+                  border: '1px solid #F0F0F0'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  {/* Avatar Emoji Food */}
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    backgroundColor: '#FFF3E0',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '24px'
+                  }}>
+                    {getMenuEmoji(menu.nama, menu.kategori)}
+                  </div>
+
+                  <div>
+                    <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: '700', color: '#2C3E50' }}>
+                      {menu.nama}
+                    </h3>
+                    <div style={{ fontWeight: '800', color: '#FF6B35', fontSize: '14px' }}>
+                      {formatRupiah(menu.harga)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* TOMBOL TAMBAH / CONTROL */}
+                <div>
+                  {jumlah === 0 ? (
+                    <button
+                      onClick={() => tambahKeKeranjang(menu)}
+                      style={{
+                        backgroundColor: '#FF6B35',
+                        color: 'white',
+                        border: 'none',
+                        padding: '8px 18px',
+                        borderRadius: '10px',
+                        cursor: 'pointer',
+                        fontWeight: '700',
+                        fontSize: '13px',
+                        boxShadow: '0 3px 8px rgba(255,107,53,0.25)'
+                      }}
+                    >
+                      + Tambah
+                    </button>
+                  ) : (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      backgroundColor: '#F5F5F5',
+                      padding: '4px 6px',
+                      borderRadius: '10px'
+                    }}>
+                      <button
+                        onClick={() => kurangDariKeranjang(menu.id)}
+                        style={{
+                          backgroundColor: '#FF5252',
+                          color: 'white',
+                          border: 'none',
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontWeight: '800',
+                          fontSize: '14px'
+                        }}
+                      >
+                        -
+                      </button>
+                      <span style={{ fontWeight: '700', fontSize: '14px', minWidth: '18px', textAlign: 'center' }}>
+                        {jumlah}
+                      </span>
+                      <button
+                        onClick={() => tambahKeKeranjang(menu)}
+                        style={{
+                          backgroundColor: '#4CAF50',
+                          color: 'white',
+                          border: 'none',
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontWeight: '800',
+                          fontSize: '14px'
+                        }}
+                      >
+                        +
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 🛒 FLOATING CART BOTTOM BAR */}
       {cart.length > 0 && (
         <div style={{
           position: 'fixed',
@@ -162,36 +293,39 @@ function App() {
           left: '50%',
           transform: 'translateX(-50%)',
           width: '90%',
-          maxWidth: '560px',
-          backgroundColor: '#2c3e50',
+          maxWidth: '460px',
+          backgroundColor: '#1E293B',
           color: 'white',
-          padding: '15px 20px',
-          borderRadius: '12px',
+          padding: '12px 18px',
+          borderRadius: '16px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+          boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+          zIndex: 1000
         }}>
           <div>
-            <div style={{ fontSize: '12px', opacity: '0.8' }}>
-              {cart.reduce((sum, item) => sum + item.jumlah, 0)} Item Dipilih
+            <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '600', textTransform: 'uppercase' }}>
+              {totalItemCount} Item Terpilih
             </div>
-            <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
+            <div style={{ fontSize: '18px', fontWeight: '800', color: '#00E676' }}>
               {formatRupiah(totalHarga)}
             </div>
           </div>
 
-          <button 
-          onClick={kirimPesanan}
-          style={{
-            backgroundColor: '#e67e22',
-            color: 'white',
-            border: 'none',
-            padding: '10px 20px',
-            borderRadius: '8px',
-            fontWeight: 'bold',
-            cursor: 'pointer'
-          }}
+          <button
+            onClick={kirimPesanan}
+            style={{
+              background: 'linear-gradient(135deg, #FF6B35 0%, #F4511E 100%)',
+              color: 'white',
+              border: 'none',
+              padding: '12px 22px',
+              borderRadius: '12px',
+              fontWeight: '700',
+              fontSize: '14px',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(255, 107, 53, 0.4)'
+            }}
           >
             Pesan Sekarang 🚀
           </button>
