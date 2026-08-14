@@ -24,12 +24,12 @@ function App() {
       });
   }, []);
 
-  const getMenuEmoji = (nama, kategori) => {
-    const nameLower = nama.toLowerCase();
-    if (nameLower.includes('kapal selam')) return '🥚';
-    if (nameLower.includes('tekwan') || nameLower.includes('model')) return '🍜';
-    if (nameLower.includes('es') || nameLower.includes('teh') || kategori === 'Minuman') return '🍹';
-    return '🐟';
+  // 📸 FUNGSI FOTO SEMENTARA
+  // Nanti kalau di backend sudah ada kolom 'image_url', kita bisa langsung pakai data dari sana.
+  const getMenuImage = (nama) => {
+    const text = encodeURIComponent(nama);
+    // Ini bikin gambar otomatis berisi nama menu dengan warna tema aplikasi
+    return `https://placehold.co/400x300/FFF3E0/FF6B35?text=${text}`;
   };
 
   const tambahKeKeranjang = (menu) => {
@@ -106,7 +106,7 @@ function App() {
           Welcome To
         </div>
         <h1 style={{ margin: '5px 0', fontSize: '28px', fontWeight: '800', letterSpacing: '0.5px' }}>
-          👑 KING PEMPEK 🐟
+          👑 KING PEMPEK
         </h1>
         
         <div style={{
@@ -132,7 +132,7 @@ function App() {
         <div style={{
           display: 'flex',
           gap: '10px',
-          margin: '20px 0',
+          margin: '24px 0',
           justifyContent: 'center'
         }}>
           {['Semua', 'Makanan', 'Minuman'].map((kat) => (
@@ -164,12 +164,12 @@ function App() {
           </div>
         )}
 
-        {/* 📜 DAFTAR MENU CARDS DENGAN FLEXBOX GRID */}
+        {/* 📸 DAFTAR MENU CARDS DENGAN FOTO & GRID EVENLY */}
         <div style={{ 
-          display: 'flex', 
-          flexWrap: 'wrap', 
-          gap: '15px',
-          justifyContent: 'center'
+          display: 'grid', 
+          gridTemplateColumns: '1fr 1fr', /* Fix 2 Kolom */
+          gap: '16px', /* Jarak merata (Space Evenly) antar box */
+          alignContent: 'space-evenly'
         }}>
           {!loading && menuFiltered.map((menu) => {
             const itemDiCart = cart.find((item) => item.id === menu.id);
@@ -179,110 +179,106 @@ function App() {
               <div
                 key={menu.id}
                 style={{
-                  flex: '1 1 calc(50% - 15px)', // Kunci Flexbox: Ambil setengah layar dikurang gap
-                  minWidth: '150px', // Jangan sampai terlalu gepeng di HP kecil
                   backgroundColor: 'white',
                   borderRadius: '16px',
-                  padding: '16px',
                   display: 'flex',
-                  flexDirection: 'column', // Susun isi card ke bawah
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  textAlign: 'center',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.04)',
+                  flexDirection: 'column',
+                  overflow: 'hidden', /* Penting! Supaya foto melengkung ikutin border card */
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
                   border: '1px solid #F0F0F0'
                 }}
               >
-                {/* Avatar Emoji Food */}
-                <div style={{
-                  width: '64px',
-                  height: '64px',
-                  backgroundColor: '#FFF3E0',
-                  borderRadius: '50%', // Dibikin bulat biar estetik
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '32px',
-                  marginBottom: '12px'
-                }}>
-                  {getMenuEmoji(menu.nama, menu.kategori)}
+                {/* 🖼️ AREA FOTO MAKANAN */}
+                <div style={{ width: '100%', height: '130px', backgroundColor: '#EEE' }}>
+                  <img 
+                    src={menu.image_url || getMenuImage(menu.nama)} 
+                    alt={menu.nama}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover' /* Biar fotonya ga gepeng, otomatis nge-crop cantik */
+                    }}
+                  />
                 </div>
 
-                <div style={{ marginBottom: '16px', width: '100%' }}>
-                  <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: '700', color: '#2C3E50', lineHeight: '1.3' }}>
-                    {menu.nama}
-                  </h3>
-                  <div style={{ fontWeight: '800', color: '#FF6B35', fontSize: '14px' }}>
-                    {formatRupiah(menu.harga)}
+                {/* 📝 AREA TEKS & TOMBOL (Bawah Foto) */}
+                <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', flexGrow: 1, justifyContent: 'space-between' }}>
+                  <div style={{ marginBottom: '12px', textAlign: 'left' }}>
+                    <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: '700', color: '#2C3E50', lineHeight: '1.3' }}>
+                      {menu.nama}
+                    </h3>
+                    <div style={{ fontWeight: '800', color: '#FF6B35', fontSize: '14px' }}>
+                      {formatRupiah(menu.harga)}
+                    </div>
                   </div>
-                </div>
 
-                {/* TOMBOL TAMBAH / CONTROL FULL WIDTH */}
-                <div style={{ width: '100%' }}>
-                  {jumlah === 0 ? (
-                    <button
-                      onClick={() => tambahKeKeranjang(menu)}
-                      style={{
-                        width: '100%',
-                        backgroundColor: '#FF6B35',
-                        color: 'white',
-                        border: 'none',
-                        padding: '10px 0',
-                        borderRadius: '10px',
-                        cursor: 'pointer',
-                        fontWeight: '700',
-                        fontSize: '13px',
-                        boxShadow: '0 3px 8px rgba(255,107,53,0.25)'
-                      }}
-                    >
-                      + Tambah
-                    </button>
-                  ) : (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      backgroundColor: '#F5F5F5',
-                      padding: '4px',
-                      borderRadius: '10px'
-                    }}>
-                      <button
-                        onClick={() => kurangDariKeranjang(menu.id)}
-                        style={{
-                          backgroundColor: '#FF5252',
-                          color: 'white',
-                          border: 'none',
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          fontWeight: '800',
-                          fontSize: '16px'
-                        }}
-                      >
-                        -
-                      </button>
-                      <span style={{ fontWeight: '700', fontSize: '15px' }}>
-                        {jumlah}
-                      </span>
+                  {/* TOMBOL TAMBAH / CONTROL */}
+                  <div style={{ width: '100%' }}>
+                    {jumlah === 0 ? (
                       <button
                         onClick={() => tambahKeKeranjang(menu)}
                         style={{
-                          backgroundColor: '#4CAF50',
+                          width: '100%',
+                          backgroundColor: '#FF6B35',
                           color: 'white',
                           border: 'none',
-                          width: '32px',
-                          height: '32px',
+                          padding: '8px 0',
                           borderRadius: '8px',
                           cursor: 'pointer',
-                          fontWeight: '800',
-                          fontSize: '16px'
+                          fontWeight: '700',
+                          fontSize: '13px',
+                          boxShadow: '0 3px 8px rgba(255,107,53,0.25)'
                         }}
                       >
-                        +
+                        + Tambah
                       </button>
-                    </div>
-                  )}
+                    ) : (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        backgroundColor: '#F5F5F5',
+                        padding: '4px',
+                        borderRadius: '8px'
+                      }}>
+                        <button
+                          onClick={() => kurangDariKeranjang(menu.id)}
+                          style={{
+                            backgroundColor: '#FF5252',
+                            color: 'white',
+                            border: 'none',
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontWeight: '800',
+                            fontSize: '14px'
+                          }}
+                        >
+                          -
+                        </button>
+                        <span style={{ fontWeight: '700', fontSize: '14px' }}>
+                          {jumlah}
+                        </span>
+                        <button
+                          onClick={() => tambahKeKeranjang(menu)}
+                          style={{
+                            backgroundColor: '#4CAF50',
+                            color: 'white',
+                            border: 'none',
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontWeight: '800',
+                            fontSize: '14px'
+                          }}
+                        >
+                          +
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -290,7 +286,7 @@ function App() {
         </div>
       </div>
 
-      {/* 🛒 FLOATING CART BOTTOM BAR */}
+      {/* 🛒 FLOATING CART BOTTOM BAR (TETAP SAMA) */}
       {cart.length > 0 && (
         <div style={{
           position: 'fixed',
