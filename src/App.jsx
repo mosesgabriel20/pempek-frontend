@@ -9,7 +9,7 @@ function App() {
   const [cart, setCart] = useState([]);
   // Ambil data menu dari Backend (port 5001)
   useEffect(() => {
-    fetch('[https://pempek-backend-xxxxx.vercel.app/api/menu](https://pempek-backend-xxxxx.vercel.app/api/menu)')
+    fetch('https://pempek-backend.vercel.app/api/menu')
       .then((res) => res.json())
       .then((data) => setMenus(data))
       .catch((err) => console.error("Aduh, gagal ngambil data:", err));
@@ -40,7 +40,7 @@ function App() {
   const kirimPesanan = () => {
     // Untuk simulasi, kita tentukan dulu ini pesanan dari Meja 3
 
-    fetch('http://localhost:5001/api/pesanan', {
+    fetch('https://pempek-backend.vercel.app/api/pesanan', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json', // Memberitahu server kalau kita ngirim data format JSON
